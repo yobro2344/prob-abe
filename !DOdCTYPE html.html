@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priority Exam Portal</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0d2e 50%, #0f0f23 100%);
+            background-attachment: fixed;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            position: relative;
+            cursor: none;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+            animation: bgShift 20s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes bgShift {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(180deg); }
+        }
+
+        /* Custom Cursor */
+        .cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, rgba(255,255,255,0.8), transparent);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.1s ease;
+            mix-blend-mode: difference;
+        }
+
+        .cursor.drag {
+            width: 30px;
+            height: 30px;
+            transform: scale(1.5);
+        }
+
+        /* Container */
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* Title */
+        .title {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 900;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 3rem;
+            text-shadow: 
+                0 0 10px #00ffff,
+                0 0 20px #00ffff,
+                0 0 40px #00ffff;
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from { filter: drop-shadow(0 0 20px #00ffff); }
+            to { filter: drop-shadow(0 0 40px #00ffff); }
+        }
+
+        /* Game Board */
+        .game-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 3rem;
+        }
+
+        /* Slots */
+        .slots {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .slot {
+            height: 120px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #00ffff;
+            cursor: grab;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .slot:hover {
+            border-color: #00ffff;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.3),
+                0 8px 32px rgba(0, 0, 0, 0.4);
+            transform: translateY(-5px);
+        }
+
+        .slot.drag-over {
+            border-color: #ff00ff;
+            box-shadow: 
+                0 0 30px rgba(255, 0, 255, 0.5),
+                0 8px 32px rgba(0, 0, 0, 0.5);
+            transform: scale(1.05);
+        }
+
+        /* Cards */
+        .cards {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card {
+            height: 120px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #fff;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .card:hover::before {
+            left: 100%;
+        }
+
+        .card:hover {
+            border-color: #00ffff;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.4),
+                0 15px 40px rgba(0, 0, 0, 0.4);
+            transform: translateY(-8px);
+        }
+
+        .card.dragging {
+            z-index: 1000;
+            transform: rotate(5deg) scale(1.05) !important;
+            box-shadow: 
+                0 20px 60px rgba(0, 255, 255, 0.4),
+                0 0 40px rgba(0, 255, 255, 0.3) !important;
+            border-color: #00ffff !important;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            background: linear-gradient(135deg, #ff00ff, #00ffff);
+            color: #fff;
+            border: none;
+            padding: 1.2rem 3rem;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 10px 30px rgba(255, 0, 255, 0.4),
+                0 0 20px rgba(0, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 
+                0 15px 40px rgba(255, 0, 255, 0.6),
+                0 0 30px rgba(0, 255, 255, 0.5);
+        }
+
+        .submit-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        /* Messages */
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 900;
+            text-align: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.5s ease;
+        }
+
+        .message.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .message.success {
+            color: #ff69b4;
+            text-shadow: 0 0 30px #ff69b4;
+            animation: successPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes successPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+
+        .message.error {
+            color: #ff4444;
+            text-shadow: 0 0 20px #ff4444;
+        }
+
+        /* Shake Animation */
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* Hearts and Flowers */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .particle {
+            position: absolute;
+            font-size: 2rem;
+            animation: floatUp 3s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(100vh) rotate(0deg) scale(0);
+            }
+            10% {
+                opacity: 1;
+                transform: translateY(90vh) rotate(90deg) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) rotate(720deg) scale(0);
+            }
+        }
+
+        /* Hide Game */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Glitch Effect */
+        .glitch {
+            animation: glitch 0.3s ease-in-out;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
+        /* Success Background */
+        body.success-bg {
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f43f5e 100%);
+            animation: bgSuccess 3s ease-in-out;
+        }
+
+        @keyframes bgSuccess {
+            0% { filter: hue-rotate(0deg) brightness(1); }
+            50% { filter: hue-rotate(180deg) brightness(1.2); }
+            100% { filter: hue-rotate(360deg) brightness(1); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .slot, .card {
+                height: 100px;
+                font-size: 1.8rem;
+            }
+            
+            .card {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cursor"></div>
+    
+    <div class="container">
+        <h1 class="title">ARRANGE THE FOLLOWING IN INCREASING ORDER OF THEIR PRIORITY</h1>
+        
+        <div class="game-board" id="gameBoard">
+            <div class="slots">
+                <div class="slot" data-slot="1">1</div>
+                <div class="slot" data-slot="2">2</div>
+                <div class="slot" data-slot="3">3</div>
+                <div class="slot" data-slot="4">4</div>
+            </div>
+            
+            <div class="cards" id="cardsContainer">
+                <!-- Cards will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <button class="submit-btn" id="submitBtn">SUBMIT PRIORITY</button>
+    </div>
+
+    <div class="message" id="message"></div>
+    <div class="particles" id="particles"></div>
+
+    <script>
+        class PriorityGame {
+            constructor() {
+                this.cards = ['CARBOXYLIC ACID', 'ALCOHOL', 'ALDEHYDE', 'SULPHONIC ACID'];
+                this.correctOrder = {
+                    1: 'CARBOXYLIC ACID',
+                    2: 'SULPHONIC ACID',
+                    3: 'ALDEHYDE',
+                    4: 'ALCOHOL'
+                };
+                this.draggedCard = null;
+                this.init();
+            }
+
+            init() {
+                this.shuffleCards();
+                this.setupEventListeners();
+                this.updateCursor();
+            }
+
+            shuffleCards() {
+                this.cards.sort(() => Math.random() - 0.5);
+                const container = document.getElementById('cardsContainer');
+                container.innerHTML = '';
+                this.cards.forEach((cardText, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.dataset.card = cardText;
+                    card.textContent = cardText;
+                    card.draggable = true;
+                    container.appendChild(card);
+                });
+            }
+
+            setupEventListeners() {
+                // Drag events
+                document.querySelectorAll('.card').forEach(card => {
+                    card.addEventListener('dragstart', this.handleDragStart.bind(this));
+                    card.addEventListener('dragend', this.handleDragEnd.bind(this));
+                });
+
+                document.querySelectorAll('.slot').forEach(slot => {
+                    slot.addEventListener('dragover', this.handleDragOver.bind(this));
+                    slot.addEventListener('drop', this.handleDrop.bind(this));
+                    slot.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                });
+
+                // Submit button
+                document.getElementById('submitBtn').addEventListener('click', this.handleSubmit.bind(this));
+            }
+
+            handleDragStart(e) {
+                this.draggedCard = e.target;
+                e.target.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', e.target.outerHTML);
+            }
+
+            handleDragEnd(e) {
+                e.target.classList.remove('dragging');
+                document.querySelectorAll('.slot').forEach(slot => {
+                    slot.classList.remove('drag-over');
+                });
+                this.draggedCard = null;
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                e.currentTarget.classList.add('drag-over');
+            }
+
+            handleDragLeave(e) {
+                e.currentTarget.classList.remove('drag-over');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+
+                const slot = e.currentTarget;
+                const existingCard = slot.querySelector('.card');
+
+                if (existingCard) {
+                    // Swap with existing card
+                    const cardsContainer = document.getElementById('cardsContainer');
+                    cardsContainer.appendChild(existingCard);
+                    this.animateSwap(this.draggedCard, existingCard);
+                }
+
+                // Place dragged card in slot
+                slot.appendChild(this.draggedCard);
+                this.draggedCard.style.transition = 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            }
+
+            animateSwap(card1, card2) {
+                const rect1 = card1.getBoundingClientRect();
+                const rect2 = card2.getBoundingClientRect();
+
+                card1.style.position = 'fixed';
+                card1.style.zIndex = '1001';
+                card1.style.transition = 'none';
+                card1.style.left = rect1.left + 'px';
+                card1.style.top = rect1.top + 'px';
+
+                card2.style.position = 'fixed';
+                card2.style.zIndex = '1001';
+                card2.style.transition = 'none';
+                card2.style.left = rect2.left + 'px';
+                card2.style.top = rect2.top + 'px';
+
+                requestAnimationFrame(() => {
+                    card1.style.transition = 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    card1.style.left = rect2.left + 'px';
+                    card1.style.top = rect2.top + 'px';
+
+                    card2.style.transition = 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    card2.style.left = rect1.left + 'px';
+                    card2.style.top = rect1.top + 'px';
+
+                    setTimeout(() => {
+                        card1.style.position = '';
+                        card1.style.left = '';
+                        card1.style.top = '';
+                        card1.style.zIndex = '';
+
+                        card2.style.position = '';
+                        card2.style.left = '';
+                        card2.style.top = '';
+                        card2.style.zIndex = '';
+                    }, 400);
+                });
+            }
+
+            handleSubmit() {
+                const slots = document.querySelectorAll('.slot');
+                const currentOrder = {};
+                
+                slots.forEach(slot => {
+                    const card = slot.querySelector('.card');
+                    if (card) {
+                        currentOrder[slot.dataset.slot] = card.dataset.card;
+                    }
+                });
+
+                // Check if correct
+                const isCorrect = Object.keys(this.correctOrder).every(slot => 
+                    currentOrder[slot] === this.correctOrder[slot]
+                );
+
+                if (isCorrect) {
+                    this.showSuccess();
+                } else {
+                    this.showError();
+                }
+            }
+
+            showSuccess() {
+                // Glitch effect
+                document.body.classList.add('glitch');
+                setTimeout(() => document.body.classList.remove('glitch'), 300);
+
+                // Change background
+                document.body.classList.add('success-bg');
+
+                // Hide game
+                document.getElementById('gameBoard').classList.add('hidden');
+                document.querySelector('.title').classList.add('hidden');
+                document.getElementById('submitBtn').classList.add('hidden');
+
+                // Show success message
+                const message = document.getElementById('message');
+                message.textContent = "NOO Its you my cutie.... youre most prior to me";
+                message.className = 'message success show';
+
+                // Create particles
+                this.createParticles();
+            }
+
+            showError() {
+                // Shake animation
+                document.getElementById('gameBoard').classList.add('shake');
+                setTimeout(() => {
+                    document.getElementById('gameBoard').classList.remove('shake');
+                }, 500);
+
+                // Show error message
+                const message = document.getElementById('message');
+                message.textContent = 'wrong answer try again';
+                message.className = 'message error show';
+                
+                setTimeout(() => {
+                    message.classList.remove('show');
+                }, 2000);
+            }
+
+            createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                const hearts = ['💖', '💕', '💗', '🌸', '🌺', '✨', '💫'];
+                
+                for (let i = 0; i < 30; i++) {
+                    setTimeout(() => {
+                        const particle = document.createElement('div');
+                        particle.className = 'particle';
+                        particle.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+                        particle.style.left = Math.random() * 100 + '%';
+                        particle.style.animationDelay = Math.random() * 0.5 + 's';
+                        particle.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                        particlesContainer.appendChild(particle);
+
+                        setTimeout(() => particle.remove(), 4000);
+                    }, i * 100);
+                }
+            }
+
+            updateCursor() {
+                document.addEventListener('mousemove', (e) => {
+                    const cursor = document.querySelector('.cursor');
+                    cursor.style.left = e.clientX + 'px';
+                    cursor.style.top = e.clientY + 'px';
+                });
+            }
+        }
+
+        // Initialize game when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new PriorityGame();
+        });
+
+        // Prevent default drag ghost
+        document.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('card')) {
+                e.dataTransfer.setDragImage(new Image(), 0, 0);
+            }
+        });
+    </script>
+</body>
+</html>
